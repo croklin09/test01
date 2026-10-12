@@ -73,7 +73,8 @@ npm run lint
 npm run test:db         # capa de datos contra node:sqlite (Node ≥ 22.5)
 ```
 
-Para instalar en el teléfono sin tienda: `npx eas-cli@latest build --profile preview --platform android` (genera un APK).
+**APK:** cada push que toque `organizador/` dispara `.github/workflows/organizador-apk.yml`, que compila el APK
+(arm64, firmado con la clave de debug) y lo publica como Release del repo. Descargalo desde el celular e instalalo.
 
 ## Cómo agregar un cambio de esquema
 
