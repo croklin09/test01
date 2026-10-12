@@ -1,10 +1,10 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 
 import { useTheme } from '../../components/theme';
-import { Button, Field, Screen } from '../../components/ui';
+import { Button, Field, Screen, Text } from '../../components/ui';
 import { ALL_DAYS, archiveHabit, deleteHabit, getHabit, saveHabit } from '../../db/repo';
 import { WEEKDAYS_SHORT } from '../../lib/dates';
 
@@ -71,7 +71,7 @@ export default function HabitoEditor() {
         placeholder="Ej.: Caminar 30 min, Leer, Agua 2 L"
         error={error}
       />
-      <Text style={{ color: t.muted, fontSize: 13, fontWeight: '600' }}>Días</Text>
+      <Text style={{ fontSize: 15, fontWeight: '800' }}>¿Qué días?</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         {WEEKDAYS_SHORT.map((label, i) => {
           const on = (mask & (1 << i)) !== 0;
@@ -82,15 +82,15 @@ export default function HabitoEditor() {
               accessibilityRole="checkbox"
               accessibilityState={{ checked: on }}
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 21,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: on ? t.primary : t.chip,
+                backgroundColor: on ? t.primary : t.cardAlt,
               }}
             >
-              <Text style={{ color: on ? t.primaryText : t.text, fontWeight: '700' }}>{label}</Text>
+              <Text style={{ color: on ? t.primaryText : t.text, fontWeight: '800' }}>{label}</Text>
             </Pressable>
           );
         })}

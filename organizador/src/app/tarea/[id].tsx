@@ -4,9 +4,15 @@ import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { PRIORITY_LABEL } from '../../components/theme';
-import { Button, ChipRow, DateField, Field, Screen } from '../../components/ui';
+import { Button, ChipRow, DateField, Field, OptionRow, Screen, Text } from '../../components/ui';
 import { deleteTask, getTask, saveTask, taskLists, type Priority } from '../../db/repo';
 import { isValidISODate } from '../../lib/dates';
+
+const PRIORITY_DESCRIPTION: Record<Priority, string> = {
+  1: 'Urgente, no puede esperar',
+  2: 'Importante, esta semana',
+  3: 'Cuando haya tiempo',
+};
 
 export default function TareaEditor() {
   const db = useSQLiteContext();
@@ -77,12 +83,17 @@ export default function TareaEditor() {
         error={error}
       />
       <DateField label="Vence" value={dueDate} onChange={setDueDate} optional />
-      <View style={{ gap: 6 }}>
-        <ChipRow
-          options={([1, 2, 3] as Priority[]).map((p) => ({ value: p, label: `Prioridad ${PRIORITY_LABEL[p]}` }))}
-          value={priority}
-          onChange={setPriority}
-        />
+      <View style={{ gap: 10 }}>
+        <Text style={{ fontSize: 15, fontWeight: '800' }}>¿Qué tan importante es?</Text>
+        {([1, 2, 3] as Priority[]).map((p) => (
+          <OptionRow
+            key={p}
+            label={PRIORITY_DESCRIPTION[p]}
+            sublabel={`Prioridad ${PRIORITY_LABEL[p].toLowerCase()}`}
+            checked={priority === p}
+            onPress={() => setPriority(p)}
+          />
+        ))}
       </View>
       <Field label="Lista" value={list} onChangeText={setList} placeholder="General, Casa, Salud, Finanzas…" />
       {listOptions.length > 1 && <ChipRow options={listOptions} value={list} onChange={setList} />}

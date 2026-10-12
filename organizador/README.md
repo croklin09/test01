@@ -3,6 +3,9 @@
 App móvil nativa (iOS / Android) de organización personal: **tareas, agenda, notas y hábitos**.
 Datos 100 % locales en el dispositivo (SQLite) con backup manual a JSON.
 
+![Modo claro](docs/capturas-claro.png)
+![Modo oscuro](docs/capturas-oscuro.png)
+
 ## Stack
 
 | Capa | Elección | Motivo |
@@ -11,6 +14,20 @@ Datos 100 % locales en el dispositivo (SQLite) con backup manual a JSON.
 | Navegación | Expo Router (rutas por archivo en `src/app/`) | Pestañas + modales sin configuración manual |
 | Datos | `expo-sqlite` con migraciones versionadas (`PRAGMA user_version`) | Consultas por fecha e índices; sin backend ni cuentas |
 | Backup | `expo-file-system` + `expo-sharing` | Exporta JSON a Drive/mail/Archivos; importa desde el selector de archivos |
+| UI | Nunito (`@expo-google-fonts`), `react-native-svg` | Tipografía redondeada e ilustraciones vectoriales propias |
+
+## Diseño
+
+Estética cálida y amable, inspirada en apps de bienestar:
+
+- **Paleta:** fondo crema, acentos naranja y amarillo, azul para las acciones principales. En modo oscuro, azul noche.
+- **Un color por módulo** (`theme.ts → accents`): Hoy amarillo-sol, Tareas naranja, Agenda amarillo, Notas lila, Hábitos azul noche.
+- **Encabezado `Hero`:** ilustración sobre halos de luz y borde inferior curvo.
+- **Tarjetas tipo sesión** (`SessionCard`): título grande, metadatos con ícono y un mosaico de color a la derecha.
+- **Filas de opción** (`OptionRow`): píldoras con check a la derecha para hábitos y prioridad.
+- **Línea de tiempo** en *Hoy*: punto naranja en el paso actual, check verde en lo hecho.
+- **Tipografía:** usar siempre `Text` / `Input` de `components/ui`. Traducen `fontWeight` a la familia de Nunito
+  correspondiente, porque en Android `fontWeight` no elige el archivo de una fuente custom.
 
 ## Estructura
 
@@ -28,7 +45,7 @@ src/
     schema.ts             Esquema + migraciones
     repo.ts               Consultas por entidad, cálculo de rachas
     backup.ts             Export / validación / restore transaccional
-  components/             UI compartida y tema claro/oscuro
+  components/             Tema, kit de UI, tarjetas e ilustraciones SVG
   lib/                    Fechas locales (YYYY-MM-DD) y hook useQuery
 tests/db.test.mts         Tests de la capa de datos sobre SQLite real (Node)
 ```

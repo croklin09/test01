@@ -2,9 +2,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, TextInput, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 
 import { useTheme } from '../../components/theme';
+import { Input } from '../../components/ui';
 import { deleteNote, getNote, saveNote } from '../../db/repo';
 
 /** Editor sin botón "Guardar": persiste al salir de la pantalla (como Notas de iOS / Keep). */
@@ -69,7 +70,7 @@ export default function NotaEditor() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.bg, padding: 16, gap: 8 }}>
+    <View style={{ flex: 1, backgroundColor: t.bg, paddingHorizontal: 22, paddingTop: 8, gap: 10 }}>
       <Stack.Screen
         options={{
           title: '',
@@ -85,22 +86,20 @@ export default function NotaEditor() {
           ),
         }}
       />
-      <TextInput
+      <Input
         value={title}
         onChangeText={setTitle}
         placeholder="Título"
-        placeholderTextColor={t.muted}
-        style={{ color: t.text, fontSize: 22, fontWeight: '700' }}
+        style={{ fontSize: 28, fontWeight: '800' }}
       />
-      <TextInput
+      <Input
         value={body}
         onChangeText={setBody}
         placeholder="Escribí…"
-        placeholderTextColor={t.muted}
         multiline
         autoFocus={isNew}
         textAlignVertical="top"
-        style={{ color: t.text, fontSize: 16, flex: 1, lineHeight: 22 }}
+        style={{ fontSize: 17, flex: 1, lineHeight: 25 }}
       />
     </View>
   );

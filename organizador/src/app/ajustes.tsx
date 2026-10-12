@@ -1,10 +1,11 @@
 import Constants from 'expo-constants';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
-import { Alert, Text } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { useTheme } from '../components/theme';
-import { Button, Card, Screen, SectionTitle } from '../components/ui';
+import { Sun } from '../components/illustrations';
+import { Button, Card, Screen, SectionTitle, Text } from '../components/ui';
 import { exportBackup, pickBackupFile, restoreBackup } from '../db/backup';
 import { SCHEMA_VERSION } from '../db/schema';
 
@@ -52,8 +53,12 @@ export default function AjustesScreen() {
 
   return (
     <Screen>
+      <View style={{ alignItems: 'center', gap: 4 }}>
+        <Sun size={96} />
+        <Text style={{ fontSize: 24, fontWeight: '800' }}>Tus datos, a salvo</Text>
+      </View>
       <SectionTitle>Backup</SectionTitle>
-      <Text style={{ color: t.muted }}>
+      <Text style={{ color: t.muted, fontSize: 15, lineHeight: 21 }}>
         Los datos viven solo en este dispositivo. Exportá un archivo JSON y guardalo en Drive, mail o Archivos para no
         perderlos si cambiás de teléfono.
       </Text>
@@ -62,7 +67,7 @@ export default function AjustesScreen() {
 
       <SectionTitle>Acerca de</SectionTitle>
       <Card>
-        <Text style={{ color: t.muted, padding: 14 }}>
+        <Text style={{ color: t.muted, padding: 18, fontWeight: '600' }}>
           Organizador v{Constants.expoConfig?.version ?? '?'} · esquema de datos v{SCHEMA_VERSION}
         </Text>
       </Card>

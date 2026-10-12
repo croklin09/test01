@@ -1,73 +1,137 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Text } from 'react-native';
+import { View } from 'react-native';
 
-import { EventRow, HabitRow, TaskRow } from '../../components/rows';
+import { EventCard, HabitOption, TaskCard, TimelineItem } from '../../components/rows';
 import { useTheme } from '../../components/theme';
-import { Card, Empty, Fab, Screen, SectionTitle } from '../../components/ui';
-import { eventsBetween, listHabits, listTasks, toggleHabit, toggleTask } from '../../db/repo';
+import { Empty, Fab, Hero, IconButton, Screen, SectionTitle, Text } from '../../components/ui';
+import {
+  eventsBetween,
+  listHabits,
+  listTasks,
+  tasksDueOn,
+  toggleHabit,
+  toggleTask,
+  type CalendarEvent,
+  type Task,
+} from '../../db/repo';
 import { formatLong, today } from '../../lib/dates';
 import { useQuery } from '../../lib/useQuery';
+
+type Step = { kind: 'event'; event: CalendarEvent; done: boolean } | { kind: 'task'; task: Task; done: boolean };
+
+function greeting(): string {
+  const h = new Date().getHours();
+  return h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+}
+
+function nowHHMM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 
 export default function HoyScreen() {
   const t = useTheme();
   const date = today();
   const { data, reload, db } = useQuery(
     async (db) => {
-      const [tasks, events, habits] = await Promise.all([
-        listTasks(db, 'hoy'),
+      const [pending, dueToday, events, habits] = await Promise.all([
+        listTasks(db, 'hoy'), // pendientes de hoy + vencidas
+        tasksDueOn(db, date), // incluye las ya hechas, para que no desaparezcan al tildarlas
         eventsBetween(db, date, date),
         listHabits(db, date),
       ]);
+      const tasks = [...pending, ...dueToday.filter((x) => x.done)];
       return { tasks, events, habits: habits.filter((h) => h.dueToday) };
     },
     date,
     { tasks: [], events: [], habits: [] },
   );
 
+  // Línea de tiempo: eventos en orden horario y después las tareas. El primer paso sin hacer es el "actual".
+  const now = nowHHMM();
+  const steps: Step[] = [
+    ...data.events.map((event) => ({
+      kind: 'event' as const,
+      event,
+      done: !!event.start_time && (event.end_time ?? event.start_time) < now,
+    })),
+    ...data.tasks.map((task) => ({ kind: 'task' as const, task, done: !!task.done })),
+  ];
+  const currentIndex = steps.findIndex((s) => !s.done);
+
   const habitsDone = data.habits.filter((h) => h.doneToday).length;
+  const pendingTasks = data.tasks.filter((x) => !x.done).length;
+  const allDone = steps.length + data.habits.length > 0 && pendingTasks === 0 && habitsDone === data.habits.length;
+
+  const subtitle = allDone
+    ? 'Todo listo por hoy'
+    : `${pendingTasks} ${pendingTasks === 1 ? 'tarea' : 'tareas'} · ${data.events.length} ${
+        data.events.length === 1 ? 'evento' : 'eventos'
+      } · hábitos ${habitsDone}/${data.habits.length}`;
 
   return (
     <>
-      <Screen>
-        <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', textTransform: 'capitalize' }}>
-          {formatLong(date)}
-        </Text>
-        <Text style={{ color: t.muted }}>
-          {data.tasks.length} tareas · {data.events.length} eventos · hábitos {habitsDone}/{data.habits.length}
-        </Text>
-
-        <SectionTitle>Agenda</SectionTitle>
-        <Card>
-          {data.events.length ? (
-            data.events.map((e) => <EventRow key={e.id} event={e} />)
-          ) : (
-            <Empty icon="calendar-clear-outline" text="Nada agendado hoy." />
-          )}
-        </Card>
-
-        <SectionTitle>Tareas (hoy y vencidas)</SectionTitle>
-        <Card>
-          {data.tasks.length ? (
-            data.tasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onToggle={async () => {
-                  await toggleTask(db, task);
-                  reload();
-                }}
+      <Screen
+        hero={
+          <Hero
+            module="hoy"
+            eyebrow={formatLong(date)}
+            title={greeting()}
+            subtitle={subtitle}
+            right={
+              <IconButton
+                icon="settings-outline"
+                label="Ajustes"
+                color={t.accents.hoy.ink}
+                bg="rgba(255,255,255,0.35)"
+                onPress={() => router.push('/ajustes')}
               />
-            ))
-          ) : (
-            <Empty icon="happy-outline" text="Sin tareas para hoy." />
-          )}
-        </Card>
+            }
+          />
+        }
+      >
+        {allDone && (
+          <View style={{ alignItems: 'center', gap: 4, paddingVertical: 6 }}>
+            <Ionicons name="sparkles" size={22} color={t.success} />
+            <Text style={{ color: t.success, fontSize: 17, fontWeight: '700' }}>
+              Terminaste todo lo de hoy. ¡Bien ahí!
+            </Text>
+          </View>
+        )}
 
-        <SectionTitle>Hábitos</SectionTitle>
-        <Card>
-          {data.habits.length ? (
-            data.habits.map((h) => (
-              <HabitRow
+        <SectionTitle>Tu día</SectionTitle>
+        {steps.length ? (
+          <View>
+            {steps.map((step, i) => (
+              <TimelineItem
+                key={step.kind === 'event' ? `e-${step.event.id}` : `t-${step.task.id}`}
+                state={step.done ? 'done' : i === currentIndex ? 'current' : 'upcoming'}
+                last={i === steps.length - 1}
+              >
+                {step.kind === 'event' ? (
+                  <EventCard event={step.event} />
+                ) : (
+                  <TaskCard
+                    task={step.task}
+                    onToggle={async () => {
+                      await toggleTask(db, step.task);
+                      reload();
+                    }}
+                  />
+                )}
+              </TimelineItem>
+            ))}
+          </View>
+        ) : (
+          <Empty icon="cafe-outline" text="Día libre: nada agendado ni pendiente." />
+        )}
+
+        <SectionTitle>Tus hábitos</SectionTitle>
+        {data.habits.length ? (
+          <View style={{ gap: 10 }}>
+            {data.habits.map((h) => (
+              <HabitOption
                 key={h.id}
                 habit={h}
                 onToggle={async () => {
@@ -75,13 +139,13 @@ export default function HoyScreen() {
                   reload();
                 }}
               />
-            ))
-          ) : (
-            <Empty icon="leaf-outline" text="No hay hábitos programados hoy." />
-          )}
-        </Card>
+            ))}
+          </View>
+        ) : (
+          <Empty icon="leaf-outline" text="No hay hábitos programados hoy." />
+        )}
       </Screen>
-      <Fab onPress={() => router.push(`/tarea/nueva?due=${date}`)} />
+      <Fab label="Tarea" onPress={() => router.push(`/tarea/nueva?due=${date}`)} />
     </>
   );
 }

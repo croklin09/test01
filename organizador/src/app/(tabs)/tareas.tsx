@@ -1,10 +1,11 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { TaskRow } from '../../components/rows';
-import { useTheme } from '../../components/theme';
-import { Card, ChipRow, Empty, Fab, Screen } from '../../components/ui';
+import { TaskCard } from '../../components/rows';
+import { RADIUS, useTheme } from '../../components/theme';
+import { ChipRow, Empty, Fab, Hero, Input, Screen } from '../../components/ui';
 import { listTasks, saveTask, toggleTask, type TaskFilter } from '../../db/repo';
 import { today } from '../../lib/dates';
 import { useQuery } from '../../lib/useQuery';
@@ -39,26 +40,40 @@ export default function TareasScreen() {
 
   return (
     <>
-      <Screen>
+      <Screen
+        hero={
+          <Hero
+            module="tareas"
+            title="Tus tareas"
+            subtitle={filter === 'hechas' ? 'Lo que ya resolviste' : 'Sacalas de la cabeza y anotalas acá'}
+          />
+        }
+      >
         <ChipRow options={FILTERS} value={filter} onChange={setFilter} />
         {filter !== 'hechas' && (
-          <View style={{ borderRadius: 12, borderWidth: 1, borderColor: t.border, backgroundColor: t.card }}>
-            <TextInput
+          <View style={[styles.quick, { backgroundColor: t.card, borderColor: t.border }]}>
+            <Input
               value={quick}
               onChangeText={setQuick}
               onSubmitEditing={quickAdd}
               placeholder="Agregar tarea rápida…"
-              placeholderTextColor={t.muted}
               returnKeyType="done"
               submitBehavior="submit"
-              style={{ color: t.text, padding: 12, fontSize: 16 }}
+              style={{ flex: 1, paddingVertical: 14, fontWeight: '600' }}
             />
+            <Pressable
+              onPress={quickAdd}
+              accessibilityLabel="Agregar"
+              style={[styles.quickBtn, { backgroundColor: quick.trim() ? t.primary : t.chip }]}
+            >
+              <Ionicons name="arrow-up" size={20} color={quick.trim() ? t.primaryText : t.muted} />
+            </Pressable>
           </View>
         )}
-        <Card>
-          {tasks.length ? (
-            tasks.map((task) => (
-              <TaskRow
+        {tasks.length ? (
+          <View style={{ gap: 12 }}>
+            {tasks.map((task) => (
+              <TaskCard
                 key={task.id}
                 task={task}
                 onToggle={async () => {
@@ -66,13 +81,26 @@ export default function TareasScreen() {
                   reload();
                 }}
               />
-            ))
-          ) : (
-            <Empty icon="checkmark-done-outline" text="No hay tareas en esta vista." />
-          )}
-        </Card>
+            ))}
+          </View>
+        ) : (
+          <Empty icon="checkmark-done-outline" text="No hay tareas en esta vista." />
+        )}
       </Screen>
       <Fab onPress={() => router.push('/tarea/nueva')} />
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  quick: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: RADIUS.pill,
+    borderWidth: 1.5,
+    paddingLeft: 20,
+    paddingRight: 6,
+    gap: 8,
+  },
+  quickBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+});

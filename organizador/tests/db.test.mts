@@ -14,6 +14,7 @@ function adapter(raw: DatabaseSync): any {
     runAsync: async (s: string, ...p: any[]) => raw.prepare(s).run(...flat(p)),
     getAllAsync: async (s: string, ...p: any[]) => raw.prepare(s).all(...flat(p)),
     getFirstAsync: async (s: string, ...p: any[]) => raw.prepare(s).get(...flat(p)) ?? null,
+    withTransactionAsync: async (fn: any) => db.withExclusiveTransactionAsync(() => fn()),
     withExclusiveTransactionAsync: async (fn: any) => { raw.exec('BEGIN'); try { await fn(db); raw.exec('COMMIT'); } catch (e) { raw.exec('ROLLBACK'); throw e; } },
   };
   return db;

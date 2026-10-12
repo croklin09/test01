@@ -1,14 +1,15 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { EventRow, TaskRow } from '../../components/rows';
-import { useTheme } from '../../components/theme';
-import { Card, Empty, Fab, Screen, SectionTitle } from '../../components/ui';
+import { EventCard, TaskCard } from '../../components/rows';
+import { RADIUS, useTheme } from '../../components/theme';
+import { Card, Empty, Fab, Hero, IconButton, Screen, SectionTitle, Text } from '../../components/ui';
 import { eventsBetween, tasksDueOn, toggleTask } from '../../db/repo';
 import { addDays, formatLong, fromISODate, startOfWeek, today, WEEKDAYS_SHORT } from '../../lib/dates';
 import { useQuery } from '../../lib/useQuery';
+
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 export default function AgendaScreen() {
   const t = useTheme();
@@ -30,78 +31,89 @@ export default function AgendaScreen() {
 
   const busyDays = new Set(data.weekEvents.map((e) => e.date));
   const dayEvents = data.weekEvents.filter((e) => e.date === selected);
+  const d = fromISODate(selected);
 
   return (
     <>
-      <Screen>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Pressable onPress={() => setSelected(addDays(selected, -7))} hitSlop={10} accessibilityLabel="Semana anterior">
-            <Ionicons name="chevron-back" size={24} color={t.primary} />
-          </Pressable>
-          <Pressable onPress={() => setSelected(today())}>
-            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, textTransform: 'capitalize' }}>
-              {formatLong(selected)}
-            </Text>
-          </Pressable>
-          <Pressable onPress={() => setSelected(addDays(selected, 7))} hitSlop={10} accessibilityLabel="Semana siguiente">
-            <Ionicons name="chevron-forward" size={24} color={t.primary} />
-          </Pressable>
-        </View>
-
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          {weekDays.map((d, i) => {
-            const active = d === selected;
-            const isToday = d === today();
-            return (
-              <Pressable
-                key={d}
-                onPress={() => setSelected(d)}
-                style={{
-                  alignItems: 'center',
-                  paddingVertical: 8,
-                  width: 44,
-                  borderRadius: 12,
-                  backgroundColor: active ? t.primary : 'transparent',
-                }}
-              >
-                <Text style={{ color: active ? t.primaryText : t.muted, fontSize: 12 }}>{WEEKDAYS_SHORT[i]}</Text>
-                <Text
-                  style={{
-                    color: active ? t.primaryText : isToday ? t.primary : t.text,
-                    fontWeight: '700',
-                    fontSize: 17,
-                  }}
+      <Screen
+        hero={
+          <Hero
+            module="agenda"
+            eyebrow={`${MONTHS[d.getMonth()]} ${d.getFullYear()}`}
+            title="Tu agenda"
+            subtitle={selected === today() ? 'Hoy' : formatLong(selected)}
+          />
+        }
+      >
+        <Card style={{ padding: 12, gap: 10 }}>
+          <View style={styles.weekHeader}>
+            <IconButton
+              icon="chevron-back"
+              label="Semana anterior"
+              color={t.text}
+              bg={t.cardAlt}
+              onPress={() => setSelected(addDays(selected, -7))}
+            />
+            <Pressable onPress={() => setSelected(today())} hitSlop={8}>
+              <Text style={{ fontWeight: '800', fontSize: 15 }}>
+                {selected === today() ? 'Esta semana' : 'Volver a hoy'}
+              </Text>
+            </Pressable>
+            <IconButton
+              icon="chevron-forward"
+              label="Semana siguiente"
+              color={t.text}
+              bg={t.cardAlt}
+              onPress={() => setSelected(addDays(selected, 7))}
+            />
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            {weekDays.map((day, i) => {
+              const active = day === selected;
+              const isToday = day === today();
+              return (
+                <Pressable
+                  key={day}
+                  onPress={() => setSelected(day)}
+                  style={[styles.day, { backgroundColor: active ? t.text : 'transparent' }]}
                 >
-                  {fromISODate(d).getDate()}
-                </Text>
-                <View
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: 3,
-                    marginTop: 3,
-                    backgroundColor: busyDays.has(d) ? (active ? t.primaryText : t.primary) : 'transparent',
-                  }}
-                />
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <SectionTitle>Eventos</SectionTitle>
-        <Card>
-          {dayEvents.length ? (
-            dayEvents.map((e) => <EventRow key={e.id} event={e} />)
-          ) : (
-            <Empty icon="calendar-clear-outline" text="Sin eventos este día." />
-          )}
+                  <Text style={{ color: active ? t.bg : t.muted, fontSize: 12, fontWeight: '700' }}>
+                    {WEEKDAYS_SHORT[i]}
+                  </Text>
+                  <Text
+                    style={{
+                      color: active ? t.bg : isToday ? t.sun : t.text,
+                      fontWeight: '800',
+                      fontSize: 18,
+                    }}
+                  >
+                    {fromISODate(day).getDate()}
+                  </Text>
+                  <View
+                    style={[styles.busy, { backgroundColor: busyDays.has(day) ? t.sun : 'transparent' }]}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
         </Card>
 
-        <SectionTitle>Tareas con vencimiento</SectionTitle>
-        <Card>
-          {data.tasks.length ? (
-            data.tasks.map((task) => (
-              <TaskRow
+        <SectionTitle>Eventos</SectionTitle>
+        {dayEvents.length ? (
+          <View style={{ gap: 12 }}>
+            {dayEvents.map((e) => (
+              <EventCard key={e.id} event={e} />
+            ))}
+          </View>
+        ) : (
+          <Empty icon="calendar-clear-outline" text="Sin eventos este día." />
+        )}
+
+        <SectionTitle>Vencen este día</SectionTitle>
+        {data.tasks.length ? (
+          <View style={{ gap: 12 }}>
+            {data.tasks.map((task) => (
+              <TaskCard
                 key={task.id}
                 task={task}
                 onToggle={async () => {
@@ -109,13 +121,19 @@ export default function AgendaScreen() {
                   reload();
                 }}
               />
-            ))
-          ) : (
-            <Empty icon="checkbox-outline" text="Sin tareas que venzan este día." />
-          )}
-        </Card>
+            ))}
+          </View>
+        ) : (
+          <Empty icon="checkmark-circle-outline" text="Ninguna tarea vence este día." />
+        )}
       </Screen>
-      <Fab onPress={() => router.push(`/evento/nuevo?date=${selected}`)} />
+      <Fab label="Evento" onPress={() => router.push(`/evento/nuevo?date=${selected}`)} />
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  day: { alignItems: 'center', paddingVertical: 8, width: 42, borderRadius: RADIUS.pill, gap: 1 },
+  busy: { width: 6, height: 6, borderRadius: 3, marginTop: 2 },
+});

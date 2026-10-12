@@ -71,9 +71,11 @@ export async function migrate(db: SQLiteDatabase): Promise<void> {
   while (version < SCHEMA_VERSION) {
     const sql = MIGRATIONS[version];
     const next = version + 1;
-    await db.withExclusiveTransactionAsync(async (txn) => {
-      await txn.execAsync(sql);
-      await txn.execAsync(`PRAGMA user_version = ${next}`);
+    // Corre en onInit, antes de que cualquier pantalla consulte: no hace falta una transacción exclusiva
+    // (que además no existe en web).
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(sql);
+      await db.execAsync(`PRAGMA user_version = ${next}`);
     });
     version = next;
   }
