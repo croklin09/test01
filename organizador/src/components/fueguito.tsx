@@ -1,10 +1,11 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import { Image } from 'expo-image';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
-import { getFueguitoAudio, pickFueguitoAudio, type FueguitoAudio } from '../lib/fueguitoAudio';
+import { getFueguitoMedia, pickFueguitoMedia, type FueguitoMedia } from '../lib/fueguitoMedia';
 import { Moon, Sun } from './illustrations';
 
 // Fueguito: personaje propio (llama con ojos grandes sobre troncos), inspirado en los espíritus de fuego del
@@ -178,6 +179,7 @@ export function SunMoonFueguito({ size = 112, night }: { size?: number; night: b
   const db = useSQLiteContext();
   const [playing, setPlaying] = useState(false);
   const [showFire, setShowFire] = useState(false); // sigue montado mientras se apaga
+  const [gif, setGif] = useState<string | null>(null); // animación elegida por la persona (si hay)
   const [p] = useState(() => new Animated.Value(0));
   const player = useRef<AudioPlayer | null>(null);
 
@@ -192,7 +194,8 @@ export function SunMoonFueguito({ size = 112, night }: { size?: number; night: b
     );
   }
 
-  async function play(audio: FueguitoAudio) {
+  async function play(audio: FueguitoMedia) {
+    setGif((await getFueguitoMedia(db, 'image'))?.uri ?? null);
     await setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
     const pl = createAudioPlayer({ uri: audio.uri });
     pl.addListener('playbackStatusUpdate', (s) => {
@@ -206,14 +209,14 @@ export function SunMoonFueguito({ size = 112, night }: { size?: number; night: b
   }
 
   async function start() {
-    const audio = await getFueguitoAudio(db);
+    const audio = await getFueguitoMedia(db, 'audio');
     if (audio) return play(audio);
     Alert.alert('Despertá al fueguito', 'Elegí una canción de tu teléfono para que suene cuando lo toques.', [
       { text: 'Ahora no', style: 'cancel' },
       {
         text: 'Elegir audio',
         onPress: () =>
-          pickFueguitoAudio(db)
+          pickFueguitoMedia(db, 'audio')
             .then((a) => a && play(a))
             .catch((e) => Alert.alert('No se pudo usar ese audio', e instanceof Error ? e.message : String(e))),
       },
@@ -249,7 +252,11 @@ export function SunMoonFueguito({ size = 112, night }: { size?: number; night: b
             transform: [{ scale: p.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }],
           }}
         >
-          <Fueguito size={fire} />
+          {gif ? (
+            <Image source={{ uri: gif }} autoplay contentFit="contain" style={{ width: fire, height: fire }} />
+          ) : (
+            <Fueguito size={fire} />
+          )}
         </Animated.View>
       )}
     </Pressable>

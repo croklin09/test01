@@ -1,11 +1,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { clearCashew, getImportRanges, importCashew, parseCashewCsv, pickCashewCsv, type ImportRange } from '../db/cashew';
 import { expenseCoverage } from '../db/repo';
 import { formatRelative } from '../lib/dates';
-import { clearFueguitoAudio, getFueguitoAudio, pickFueguitoAudio } from '../lib/fueguitoAudio';
+import {
+  clearFueguitoMedia,
+  getFueguitoMedia,
+  pickFueguitoMedia,
+  type FueguitoMedia,
+  type MediaKind,
+} from '../lib/fueguitoMedia';
 import { useQuery } from '../lib/useQuery';
 import {
   countLocalEvents,
@@ -276,42 +283,84 @@ const styles = StyleSheet.create({
 
 export function FueguitoSection() {
   const t = useTheme();
-  const { data: audio, reload, db } = useQuery((db) => getFueguitoAudio(db), 'fueguito', null);
+  const { data, reload, db } = useQuery(
+    async (db) => ({ audio: await getFueguitoMedia(db, 'audio'), image: await getFueguitoMedia(db, 'image') }),
+    'fueguito',
+    { audio: null, image: null },
+  );
 
-  const pick = () =>
-    pickFueguitoAudio(db)
+  const pick = (kind: MediaKind) =>
+    pickFueguitoMedia(db, kind)
       .then(reload)
-      .catch((e) => errorAlert('No se pudo usar ese audio', e));
+      .catch((e) => errorAlert('No se pudo usar ese archivo', e));
 
   return (
     <>
       <SectionTitle>Fueguito</SectionTitle>
       <Card style={{ padding: 16, gap: 12, flexDirection: 'row', alignItems: 'center' }}>
-        <Fueguito size={64} />
+        {data.image ? (
+          <Image source={{ uri: data.image.uri }} autoplay contentFit="contain" style={{ width: 64, height: 64 }} />
+        ) : (
+          <Fueguito size={64} />
+        )}
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ fontWeight: '800', fontSize: 16 }}>Tocá el sol (o la luna) en Hoy</Text>
           <Text style={{ color: t.muted, fontSize: 13 }}>
-            Se transforma en el fueguito mientras suena tu canción. El audio queda guardado solo en este teléfono.
+            Se transforma mientras suena tu canción. Canción y animación las elegís de tu teléfono y quedan guardadas
+            solo acá.
           </Text>
         </View>
       </Card>
-      {audio ? (
-        <Card alt style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}>
-          <Ionicons name="musical-notes" size={20} color={t.accents.hoy.tileInk} />
-          <Text numberOfLines={1} style={{ flex: 1, fontWeight: '700' }}>
-            {audio.name}
-          </Text>
-        </Card>
-      ) : null}
-      <Button
-        title={audio ? 'Cambiar canción' : 'Elegir canción'}
-        icon="musical-note-outline"
-        variant={audio ? 'ghost' : 'primary'}
-        onPress={pick}
+      <MediaRow
+        icon="musical-notes"
+        empty="Sin canción"
+        media={data.audio}
+        pickLabel="Elegir canción"
+        onPick={() => pick('audio')}
+        onClear={() => clearFueguitoMedia(db, 'audio').then(reload)}
       />
-      {audio ? (
-        <Button title="Quitar canción" variant="danger" onPress={() => clearFueguitoAudio(db).then(reload)} />
-      ) : null}
+      <MediaRow
+        icon="film"
+        empty="Animación dibujada (por defecto)"
+        media={data.image}
+        pickLabel="Elegir animación (GIF)"
+        onPick={() => pick('image')}
+        onClear={() => clearFueguitoMedia(db, 'image').then(reload)}
+      />
     </>
+  );
+}
+
+function MediaRow({
+  icon,
+  empty,
+  media,
+  pickLabel,
+  onPick,
+  onClear,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  empty: string;
+  media: FueguitoMedia | null;
+  pickLabel: string;
+  onPick: () => void;
+  onClear: () => void;
+}) {
+  const t = useTheme();
+  return (
+    <Card alt style={{ padding: 14, gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Ionicons name={icon} size={20} color={t.accents.hoy.tileInk} />
+        <Text numberOfLines={1} style={{ flex: 1, fontWeight: '700', color: media ? t.text : t.muted }}>
+          {media ? media.name : empty}
+        </Text>
+        {media ? (
+          <Pressable onPress={onClear} hitSlop={10} accessibilityLabel="Quitar">
+            <Ionicons name="close-circle" size={22} color={t.muted} />
+          </Pressable>
+        ) : null}
+      </View>
+      <Button title={media ? 'Cambiar' : pickLabel} variant="ghost" onPress={onPick} />
+    </Card>
   );
 }
