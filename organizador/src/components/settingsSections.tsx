@@ -12,6 +12,9 @@ import {
   pickFueguitoMedia,
   type FueguitoMedia,
   type MediaKind,
+  addFueguitoImages,
+  getFueguitoImages,
+  removeFueguitoImage,
 } from '../lib/fueguitoMedia';
 import { useQuery } from '../lib/useQuery';
 import {
@@ -277,6 +280,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   calDot: { width: 12, height: 12, borderRadius: 6 },
+  thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  thumb: { width: 92, height: 72, borderRadius: 14, overflow: 'hidden', backgroundColor: '#00000022' },
+  thumbRemove: { position: 'absolute', top: 4, right: 4, backgroundColor: '#00000055', borderRadius: 12 },
 });
 
 // ---------- Fueguito ----------
@@ -284,9 +290,9 @@ const styles = StyleSheet.create({
 export function FueguitoSection() {
   const t = useTheme();
   const { data, reload, db } = useQuery(
-    async (db) => ({ audio: await getFueguitoMedia(db, 'audio'), image: await getFueguitoMedia(db, 'image') }),
+    async (db) => ({ audio: await getFueguitoMedia(db, 'audio'), images: await getFueguitoImages(db) }),
     'fueguito',
-    { audio: null, image: null },
+    { audio: null, images: [] as FueguitoMedia[] },
   );
 
   const pick = (kind: MediaKind) =>
@@ -298,16 +304,12 @@ export function FueguitoSection() {
     <>
       <SectionTitle>Fueguito</SectionTitle>
       <Card style={{ padding: 16, gap: 12, flexDirection: 'row', alignItems: 'center' }}>
-        {data.image ? (
-          <Image source={{ uri: data.image.uri }} autoplay contentFit="contain" style={{ width: 64, height: 64 }} />
-        ) : (
-          <Fueguito size={64} />
-        )}
+        <Fueguito size={64} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ fontWeight: '800', fontSize: 16 }}>Tocá el sol (o la luna) en Hoy</Text>
           <Text style={{ color: t.muted, fontSize: 13 }}>
-            Se transforma mientras suena tu canción. Canción y animación las elegís de tu teléfono y quedan guardadas
-            solo acá.
+            Se transforma mientras suena tu canción, en una de tus animaciones al azar (o en este fueguito si no
+            elegiste ninguna). Todo queda guardado solo en este teléfono.
           </Text>
         </View>
       </Card>
@@ -319,14 +321,43 @@ export function FueguitoSection() {
         onPick={() => pick('audio')}
         onClear={() => clearFueguitoMedia(db, 'audio').then(reload)}
       />
-      <MediaRow
-        icon="film"
-        empty="Animación dibujada (por defecto)"
-        media={data.image}
-        pickLabel="Elegir animación (GIF)"
-        onPick={() => pick('image')}
-        onClear={() => clearFueguitoMedia(db, 'image').then(reload)}
-      />
+      <Card alt style={{ padding: 14, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Ionicons name="film" size={20} color={t.accents.hoy.tileInk} />
+          <Text style={{ flex: 1, fontWeight: '700', color: data.images.length ? t.text : t.muted }}>
+            {data.images.length
+              ? `${data.images.length} ${data.images.length === 1 ? 'animación' : 'animaciones'} · una al azar`
+              : 'Sin animaciones: se usa el fueguito dibujado'}
+          </Text>
+        </View>
+        {data.images.length > 0 && (
+          <View style={styles.thumbs}>
+            {data.images.map((m) => (
+              <View key={m.uri} style={styles.thumb}>
+                <Image source={{ uri: m.uri }} autoplay contentFit="cover" style={StyleSheet.absoluteFill} />
+                <Pressable
+                  onPress={() => removeFueguitoImage(db, m.uri).then(reload)}
+                  hitSlop={8}
+                  accessibilityLabel={`Quitar ${m.name}`}
+                  style={styles.thumbRemove}
+                >
+                  <Ionicons name="close-circle" size={22} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+        <Button
+          title="Agregar animaciones (GIF)"
+          variant="ghost"
+          icon="add"
+          onPress={() =>
+            addFueguitoImages(db)
+              .then(reload)
+              .catch((e) => errorAlert('No se pudieron agregar', e))
+          }
+        />
+      </Card>
     </>
   );
 }

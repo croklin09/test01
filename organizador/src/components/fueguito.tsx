@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
-import { getFueguitoMedia, pickFueguitoMedia, type FueguitoMedia } from '../lib/fueguitoMedia';
+import { BUNDLED_ANIMATIONS } from '../lib/fueguitoBundled';
+import { getFueguitoImages, getFueguitoMedia, pickFueguitoMedia, type FueguitoMedia } from '../lib/fueguitoMedia';
 import { Moon, Sun } from './illustrations';
 
 // Fueguito: personaje propio (llama con ojos grandes sobre troncos), inspirado en los espíritus de fuego del
@@ -169,6 +170,26 @@ export function Fueguito({ size = 140 }: { size?: number }) {
   );
 }
 
+/**
+ * Marco para las animaciones elegidas: titila y "respira" suave, así una imagen quieta no se ve congelada y un
+ * GIF animado apenas cambia. Brillo cálido alrededor como si iluminara el encabezado.
+ */
+function Breathing({ size, children }: { size: number; children: React.ReactNode }) {
+  const breath = useFlicker([1, 1.035, 0.99, 1.025, 1], [700, 600, 650, 550]);
+  const glow = useFlicker([0.55, 0.85, 0.6, 0.8, 0.55], [420, 380, 460, 400]);
+  return (
+    <Animated.View style={{ alignItems: 'center', justifyContent: 'center', transform: [{ scale: breath }] }}>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { margin: -10, borderRadius: 34, backgroundColor: '#FF8A1F', opacity: glow },
+        ]}
+      />
+      <View style={{ borderRadius: 24, overflow: 'hidden', width: size * 1.25, height: size }}>{children}</View>
+    </Animated.View>
+  );
+}
+
 export const isNight = (d = new Date()) => d.getHours() >= 20 || d.getHours() < 7;
 
 /**
@@ -179,7 +200,7 @@ export function SunMoonFueguito({ size = 112, night }: { size?: number; night: b
   const db = useSQLiteContext();
   const [playing, setPlaying] = useState(false);
   const [showFire, setShowFire] = useState(false); // sigue montado mientras se apaga
-  const [gif, setGif] = useState<string | null>(null); // animación elegida por la persona (si hay)
+  const [gif, setGif] = useState<number | { uri: string } | null>(null); // animación elegida al azar (si hay)
   const [p] = useState(() => new Animated.Value(0));
   const player = useRef<AudioPlayer | null>(null);
 
@@ -195,7 +216,12 @@ export function SunMoonFueguito({ size = 112, night }: { size?: number; night: b
   }
 
   async function play(audio: FueguitoMedia) {
-    setGif((await getFueguitoMedia(db, 'image'))?.uri ?? null);
+    // Una animación al azar entre las incluidas y las elegidas por la persona; si no hay, el fueguito dibujado.
+    const pool = [
+      ...BUNDLED_ANIMATIONS.map((b) => b.source),
+      ...(await getFueguitoImages(db)).map((m) => ({ uri: m.uri })),
+    ];
+    setGif(pool.length ? pool[Math.floor(Math.random() * pool.length)] : null);
     await setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
     const pl = createAudioPlayer({ uri: audio.uri });
     pl.addListener('playbackStatusUpdate', (s) => {
@@ -253,7 +279,9 @@ export function SunMoonFueguito({ size = 112, night }: { size?: number; night: b
           }}
         >
           {gif ? (
-            <Image source={{ uri: gif }} autoplay contentFit="contain" style={{ width: fire, height: fire }} />
+            <Breathing size={fire}>
+              <Image source={gif} autoplay contentFit="cover" style={{ width: fire * 1.25, height: fire }} />
+            </Breathing>
           ) : (
             <Fueguito size={fire} />
           )}
