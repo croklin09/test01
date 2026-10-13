@@ -45,7 +45,7 @@ Estética cálida y amable, inspirada en apps de bienestar:
   hábito × ánimo y ánimo × gasto. Excluye el día de hoy, compara solo una moneda y exige al menos 4 días por grupo y una
   diferencia relevante antes de mostrar un hallazgo.
 
-## Novedades (v1.2–1.4)
+## Novedades (v1.2–1.5)
 
 - **Fueguito** (`components/fueguito.tsx`): en *Hoy*, el sol (de día) o la luna (de noche, 20 a 7 h) se transforma
   al tocarlo en un fueguito animado (llama en capas que titila, parpadeo y chispas; `Animated` con driver nativo)
@@ -53,8 +53,9 @@ Estética cálida y amable, inspirada en apps de bienestar:
   fueguito dibujado se muestra una animación (GIF/WebP) elegida también desde el teléfono (`expo-image`, que anima
   GIF en Android). Se pueden elegir varias animaciones: cada toque muestra una al azar, en un marco que "respira"
   y titila (así una imagen quieta tampoco se ve congelada). Canción y animaciones se copian a la carpeta privada
-  de la app (`lib/fueguitoMedia.ts`). `lib/fueguitoBundled.ts` permite incluir animaciones en el APK, pero queda
-  vacío mientras el repo sea público: no debe contener material con derechos de autor.
+  de la app (`lib/fueguitoMedia.ts`). Desde la v1.5, `lib/fueguitoBundled.ts` incluye 6 animaciones de Calcifer
+  (`assets/fueguito/`), **solo porque el repo es privado y de uso personal**. Si el repo vuelve a ser público hay
+  que quitarlas, también de la historia de git.
 - **Cashew por "Compartir"** (`components/IncomingShare.tsx`, `expo-sharing`): Organizador aparece en el menú
   Compartir de Android para CSV. Cashew guarda el export en Descargas (no abre Compartir), así que el flujo es:
   Cashew → Ajustes → Importación y exportación → Exportar a archivo CSV → app Archivos → Compartir → Organizador.

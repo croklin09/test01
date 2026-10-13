@@ -6,6 +6,7 @@ import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { clearCashew, getImportRanges, importCashew, parseCashewCsv, pickCashewCsv, type ImportRange } from '../db/cashew';
 import { expenseCoverage } from '../db/repo';
 import { formatRelative } from '../lib/dates';
+import { BUNDLED_ANIMATIONS } from '../lib/fueguitoBundled';
 import {
   clearFueguitoMedia,
   getFueguitoMedia,
@@ -295,6 +296,8 @@ export function FueguitoSection() {
     { audio: null, images: [] as FueguitoMedia[] },
   );
 
+  const total = BUNDLED_ANIMATIONS.length + data.images.length;
+
   const pick = (kind: MediaKind) =>
     pickFueguitoMedia(db, kind)
       .then(reload)
@@ -304,12 +307,18 @@ export function FueguitoSection() {
     <>
       <SectionTitle>Fueguito</SectionTitle>
       <Card style={{ padding: 16, gap: 12, flexDirection: 'row', alignItems: 'center' }}>
-        <Fueguito size={64} />
+        {BUNDLED_ANIMATIONS[0] ? (
+          <View style={{ width: 80, height: 64, borderRadius: 14, overflow: 'hidden' }}>
+            <Image source={BUNDLED_ANIMATIONS[0].source} autoplay contentFit="cover" style={StyleSheet.absoluteFill} />
+          </View>
+        ) : (
+          <Fueguito size={64} />
+        )}
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ fontWeight: '800', fontSize: 16 }}>Tocá el sol (o la luna) en Hoy</Text>
           <Text style={{ color: t.muted, fontSize: 13 }}>
-            Se transforma mientras suena tu canción, en una de tus animaciones al azar (o en este fueguito si no
-            elegiste ninguna). Todo queda guardado solo en este teléfono.
+            Se transforma en Calcifer mientras suena tu canción: una animación distinta al azar cada vez. Podés sumar
+            las tuyas.
           </Text>
         </View>
       </Card>
@@ -324,14 +333,19 @@ export function FueguitoSection() {
       <Card alt style={{ padding: 14, gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Ionicons name="film" size={20} color={t.accents.hoy.tileInk} />
-          <Text style={{ flex: 1, fontWeight: '700', color: data.images.length ? t.text : t.muted }}>
-            {data.images.length
-              ? `${data.images.length} ${data.images.length === 1 ? 'animación' : 'animaciones'} · una al azar`
+          <Text style={{ flex: 1, fontWeight: '700', color: total ? t.text : t.muted }}>
+            {total
+              ? `${total} ${total === 1 ? 'animación' : 'animaciones'} · una al azar cada vez`
               : 'Sin animaciones: se usa el fueguito dibujado'}
           </Text>
         </View>
-        {data.images.length > 0 && (
+        {total > 0 && (
           <View style={styles.thumbs}>
+            {BUNDLED_ANIMATIONS.map((b) => (
+              <View key={b.name} style={styles.thumb} accessibilityLabel={`Incluida: ${b.name}`}>
+                <Image source={b.source} autoplay contentFit="cover" style={StyleSheet.absoluteFill} />
+              </View>
+            ))}
             {data.images.map((m) => (
               <View key={m.uri} style={styles.thumb}>
                 <Image source={{ uri: m.uri }} autoplay contentFit="cover" style={StyleSheet.absoluteFill} />
