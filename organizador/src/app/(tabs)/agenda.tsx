@@ -5,7 +5,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { EventCard, TaskCard } from '../../components/rows';
 import { RADIUS, useTheme } from '../../components/theme';
 import { Card, Empty, Fab, Hero, IconButton, Screen, SectionTitle, Text } from '../../components/ui';
-import { eventsBetween, tasksDueOn, toggleTask } from '../../db/repo';
+import { DayExpensesCard } from '../../components/expenses';
+import { getImportRanges, isCovered } from '../../db/cashew';
+import { expensesOn, tasksDueOn, toggleTask, type Expense } from '../../db/repo';
+import { occursOn } from '../../lib/calendarMapping';
+import { listAgendaEvents, type AgendaEvent } from '../../lib/events';
 import { addDays, formatLong, fromISODate, startOfWeek, today, WEEKDAYS_SHORT } from '../../lib/dates';
 import { useQuery } from '../../lib/useQuery';
 
@@ -19,18 +23,26 @@ export default function AgendaScreen() {
 
   const { data, reload, db } = useQuery(
     async (db) => {
-      const [weekEvents, tasks] = await Promise.all([
-        eventsBetween(db, weekStart, addDays(weekStart, 6)),
+      const [weekEvents, tasks, expenses, ranges] = await Promise.all([
+        listAgendaEvents(db, weekStart, addDays(weekStart, 6)).catch(() => [] as AgendaEvent[]),
         tasksDueOn(db, selected),
+        expensesOn(db, selected),
+        getImportRanges(db),
       ]);
-      return { weekEvents, tasks };
+      return {
+        weekEvents,
+        tasks,
+        expenses,
+        hasCashew: ranges.length > 0,
+        covered: isCovered(ranges, selected),
+      };
     },
     selected,
-    { weekEvents: [], tasks: [] },
+    { weekEvents: [] as AgendaEvent[], tasks: [], expenses: [] as Expense[], hasCashew: false, covered: false },
   );
 
-  const busyDays = new Set(data.weekEvents.map((e) => e.date));
-  const dayEvents = data.weekEvents.filter((e) => e.date === selected);
+  const busyDays = new Set(weekDays.filter((day) => data.weekEvents.some((e) => occursOn(e, day))));
+  const dayEvents = data.weekEvents.filter((e) => occursOn(e, selected));
   const d = fromISODate(selected);
 
   return (
@@ -102,11 +114,18 @@ export default function AgendaScreen() {
         {dayEvents.length ? (
           <View style={{ gap: 12 }}>
             {dayEvents.map((e) => (
-              <EventCard key={e.id} event={e} />
+              <EventCard key={`${e.id}-${e.date}-${e.start_time}`} event={e} day={selected} />
             ))}
           </View>
         ) : (
           <Empty icon="calendar-clear-outline" text="Sin eventos este día." />
+        )}
+
+        {data.hasCashew && (
+          <>
+            <SectionTitle>Gastos del día</SectionTitle>
+            <DayExpensesCard items={data.expenses} covered={data.covered} />
+          </>
         )}
 
         <SectionTitle>Vencen este día</SectionTitle>

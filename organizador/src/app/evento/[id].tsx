@@ -1,13 +1,16 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Alert, View } from 'react-native';
 
-import { Button, DateField, Field, Screen } from '../../components/ui';
-import { deleteEvent, getEvent, saveEvent } from '../../db/repo';
+import { useTheme } from '../../components/theme';
+import { Button, Card, DateField, Field, Screen, Text } from '../../components/ui';
+import { deleteAgendaEvent, getAgendaEvent, getCalendarSettings, saveAgendaEvent } from '../../lib/events';
 import { isValidISODate, isValidTime, today } from '../../lib/dates';
 
 export default function EventoEditor() {
+  const t = useTheme();
   const db = useSQLiteContext();
   const { id, date: dateParam } = useLocalSearchParams<{ id: string; date?: string }>();
   const isNew = id === 'nuevo';
@@ -19,11 +22,21 @@ export default function EventoEditor() {
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [calendarTitle, setCalendarTitle] = useState<string>();
+  const [lockReason, setLockReason] = useState<string>();
+  const [phoneCalendar, setPhoneCalendar] = useState(false);
 
   useEffect(() => {
-    if (isNew) return;
-    getEvent(db, id).then((e) => {
+    if (isNew) {
+      getCalendarSettings(db).then((s) => setPhoneCalendar(s.enabled));
+      return;
+    }
+    getAgendaEvent(db, id).then((e) => {
       if (!e) return router.back();
+      setCalendarTitle(e.calendarTitle);
+      // Este editor maneja eventos de un solo día; series y eventos largos se editan en la app de calendario.
+      if (e.readOnly) setLockReason('Es un evento repetido o de un calendario de solo lectura.');
+      else if (e.date !== e.end_date) setLockReason('Es un evento de varios días.');
       setTitle(e.title);
       setDate(e.date);
       setStart(e.start_time ?? '');
@@ -42,15 +55,19 @@ export default function EventoEditor() {
     if (start && end && isValidTime(start) && isValidTime(end) && end <= start) errs.end = 'Debe ser posterior al inicio.';
     setErrors(errs);
     if (Object.keys(errs).length) return;
-    await saveEvent(db, isNew ? null : id, {
-      title: title.trim(),
-      date,
-      start_time: start || null,
-      end_time: end || null,
-      location: location.trim(),
-      notes: notes.trim(),
-    });
-    router.back();
+    try {
+      await saveAgendaEvent(db, isNew ? null : id, {
+        title: title.trim(),
+        date,
+        start_time: start || null,
+        end_time: end || null,
+        location: location.trim(),
+        notes: notes.trim(),
+      });
+      router.back();
+    } catch (e) {
+      Alert.alert('No se pudo guardar', e instanceof Error ? e.message : String(e));
+    }
   }
 
   function remove() {
@@ -60,8 +77,12 @@ export default function EventoEditor() {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
-          await deleteEvent(db, id);
-          router.back();
+          try {
+            await deleteAgendaEvent(db, id);
+            router.back();
+          } catch (e) {
+            Alert.alert('No se pudo eliminar', e instanceof Error ? e.message : String(e));
+          }
         },
       },
     ]);
@@ -69,8 +90,27 @@ export default function EventoEditor() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: isNew ? 'Nuevo evento' : 'Editar evento' }} />
-      <Field label="Título" value={title} onChangeText={setTitle} autoFocus={isNew} error={errors.title} />
+      <Stack.Screen options={{ title: isNew ? 'Nuevo evento' : lockReason ? 'Evento' : 'Editar evento' }} />
+      {calendarTitle || (isNew && phoneCalendar) ? (
+        <Card alt style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}>
+          <Ionicons name={lockReason ? 'lock-closed-outline' : 'calendar-outline'} size={20} color={t.muted} />
+          <Text style={{ flex: 1, color: t.muted, fontWeight: '600' }}>
+            {lockReason
+              ? `${lockReason} Editalo desde tu app de calendario.`
+              : calendarTitle
+                ? `Calendario: ${calendarTitle}. Los cambios se guardan en tu calendario del teléfono.`
+                : 'Se guarda en tu calendario del teléfono.'}
+          </Text>
+        </Card>
+      ) : null}
+      <Field
+        label="Título"
+        value={title}
+        onChangeText={setTitle}
+        autoFocus={isNew}
+        error={errors.title}
+        editable={!lockReason}
+      />
       <DateField label="Fecha" value={date} onChange={(v) => setDate(v ?? today())} />
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <View style={{ flex: 1 }}>
@@ -98,8 +138,8 @@ export default function EventoEditor() {
       </View>
       <Field label="Lugar" value={location} onChangeText={setLocation} />
       <Field label="Notas" value={notes} onChangeText={setNotes} multiline />
-      <Button title="Guardar" icon="checkmark" onPress={save} />
-      {!isNew && <Button title="Eliminar" variant="danger" icon="trash-outline" onPress={remove} />}
+      {!lockReason && <Button title="Guardar" icon="checkmark" onPress={save} />}
+      {!isNew && !lockReason && <Button title="Eliminar" variant="danger" icon="trash-outline" onPress={remove} />}
     </Screen>
   );
 }

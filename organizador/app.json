@@ -2,7 +2,7 @@
   "expo": {
     "name": "Organizador",
     "slug": "organizador",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.croklin.organizador",
-      "versionCode": 1
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,7 +27,14 @@
     "scheme": "organizador",
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Organizador usa tu calendario para mostrar y guardar tus eventos.",
+          "remindersPermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

@@ -57,6 +57,35 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (habit_id, date)
   );
   `,
+  // v2: ánimo diario, gastos importados de Cashew y ajustes por dispositivo.
+  `
+  CREATE TABLE settings (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL
+  );
+
+  CREATE TABLE checkins (
+    date TEXT PRIMARY KEY NOT NULL,             -- YYYY-MM-DD
+    mood INTEGER NOT NULL CHECK (mood BETWEEN 1 AND 5),
+    note TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,                         -- YYYY-MM-DD, hora local
+    occurred_at TEXT NOT NULL,                  -- fecha y hora tal como vino del origen
+    amount REAL NOT NULL CHECK (amount >= 0),   -- siempre positivo; el sentido lo da is_income
+    is_income INTEGER NOT NULL DEFAULT 0,
+    currency TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT '',
+    account TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT 'cashew',
+    imported_at TEXT NOT NULL
+  );
+  CREATE INDEX idx_expenses_date ON expenses(source, date);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

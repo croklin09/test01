@@ -6,7 +6,8 @@ import { nowISO, today } from '../lib/dates';
 import { SCHEMA_VERSION } from './schema';
 
 // Orden de inserción: los padres antes que las tablas con FK.
-const TABLES = ['tasks', 'events', 'notes', 'habits', 'habit_logs'] as const;
+// `settings` queda afuera a propósito: guarda ids del calendario de ESTE teléfono.
+const TABLES = ['tasks', 'events', 'notes', 'habits', 'habit_logs', 'checkins', 'expenses'] as const;
 type Table = (typeof TABLES)[number];
 
 export type Backup = {

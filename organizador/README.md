@@ -29,6 +29,22 @@ Estética cálida y amable, inspirada en apps de bienestar:
 - **Tipografía:** usar siempre `Text` / `Input` de `components/ui`. Traducen `fontWeight` a la familia de Nunito
   correspondiente, porque en Android `fontWeight` no elige el archivo de una fuente custom.
 
+## Integraciones (v1.1)
+
+- **Calendario del teléfono** (`expo-calendar`, en dos sentidos). Al activarlo en Ajustes, la fuente de verdad de los
+  eventos pasa a ser el calendario del sistema (Google, Xiaomi…): Organizador lee y escribe ahí, sin copias que
+  sincronizar. Los eventos locales existentes se mueven al calendario elegido. Las series repetidas y los eventos de
+  varios días se muestran pero se editan desde la app de calendario. Ojo: en Android los eventos de todo el día están
+  a medianoche UTC; `lib/calendarMapping.ts` los lee en UTC para que no se corran un día en UTC−3.
+- **Cashew** (sin API): se importa el CSV que exporta Cashew (`db/cashew.ts`). Se excluyen "Corrección de saldo"
+  (transferencias y ajustes) y préstamos (`credit`/`debt`), igual que en los totales de Cashew. Reimportar reemplaza
+  los días del archivo. Se guardan los rangos importados: un día sin gastos dentro de un rango vale $0, fuera de
+  cualquier rango es "sin datos".
+- **Ánimo diario** (1–5) desde *Hoy*.
+- **Estadísticas** (`lib/insights.ts`, puro): gasto por día, gasto según ánimo y cruces hábito × gasto,
+  hábito × ánimo y ánimo × gasto. Excluye el día de hoy, compara solo una moneda y exige al menos 4 días por grupo y una
+  diferencia relevante antes de mostrar un hallazgo.
+
 ## Estructura
 
 ```
@@ -40,13 +56,15 @@ src/
     evento/[id].tsx       Editor (id = "nuevo")
     nota/[id].tsx         Editor con autoguardado al salir
     habito/[id].tsx       Editor (id = "nuevo")
-    ajustes.tsx           Exportar / importar backup
+    ajustes.tsx           Calendario, Cashew y backup
+    estadisticas.tsx      Gastos × hábitos × ánimo
   db/
     schema.ts             Esquema + migraciones
     repo.ts               Consultas por entidad, cálculo de rachas
     backup.ts             Export / validación / restore transaccional
-  components/             Tema, kit de UI, tarjetas e ilustraciones SVG
-  lib/                    Fechas locales (YYYY-MM-DD) y hook useQuery
+    cashew.ts             Importador del CSV de Cashew
+  components/             Tema, kit de UI, tarjetas, gráficos e ilustraciones SVG
+  lib/                    Fechas, useQuery, eventos (local/teléfono), insights, montos
 tests/db.test.mts         Tests de la capa de datos sobre SQLite real (Node)
 ```
 
@@ -70,7 +88,7 @@ npm install
 npx expo start          # abrir con Expo Go o con un development build
 npm run typecheck
 npm run lint
-npm run test:db         # capa de datos contra node:sqlite (Node ≥ 22.5)
+npm run test:db         # datos, Cashew, calendario e insights (node:sqlite, TZ de Argentina)
 ```
 
 **APK:** cada push que toque `organizador/` dispara `.github/workflows/organizador-apk.yml`, que compila el APK

@@ -5,6 +5,7 @@ import { Alert, View } from 'react-native';
 
 import { useTheme } from '../components/theme';
 import { Sun } from '../components/illustrations';
+import { CalendarSection, CashewSection } from '../components/settingsSections';
 import { Button, Card, Screen, SectionTitle, Text } from '../components/ui';
 import { exportBackup, pickBackupFile, restoreBackup } from '../db/backup';
 import { SCHEMA_VERSION } from '../db/schema';
@@ -55,12 +56,14 @@ export default function AjustesScreen() {
     <Screen>
       <View style={{ alignItems: 'center', gap: 4 }}>
         <Sun size={96} />
-        <Text style={{ fontSize: 24, fontWeight: '800' }}>Tus datos, a salvo</Text>
+        <Text style={{ fontSize: 24, fontWeight: '800' }}>Conexiones y datos</Text>
       </View>
+      <CalendarSection />
+      <CashewSection />
       <SectionTitle>Backup</SectionTitle>
       <Text style={{ color: t.muted, fontSize: 15, lineHeight: 21 }}>
-        Los datos viven solo en este dispositivo. Exportá un archivo JSON y guardalo en Drive, mail o Archivos para no
-        perderlos si cambiás de teléfono.
+        Tareas, notas, hábitos, ánimo y gastos importados viven solo en este dispositivo (los eventos del calendario
+        del teléfono ya están en tu cuenta). Exportá un JSON y guardalo en Drive para no perder nada.
       </Text>
       <Button title={busy ? 'Procesando…' : 'Exportar backup (JSON)'} icon="share-outline" onPress={doExport} />
       <Button title="Importar backup" variant="ghost" icon="download-outline" onPress={doImport} />

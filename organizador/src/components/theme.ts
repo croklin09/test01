@@ -45,6 +45,9 @@ const light = {
   shadow: '#5A3A1A',
   sun: '#FF7A2E',
   sunLight: '#FFA25E',
+  // Gráficos: color validado (banda de luminosidad y contraste ≥ 3:1 sobre la tarjeta).
+  chart: '#F26B1D',
+  chartMuted: '#D8CFC5',
   accents: {
     hoy: { hero: '#FFB31F', glow: '#FFCB45', ink: '#2D2A26', tile: '#FFE7B3', tileInk: '#B35A00' },
     tareas: { hero: '#FF8A3D', glow: '#FFA866', ink: '#2D2A26', tile: '#FFE1CC', tileInk: '#B34A00' },
@@ -74,6 +77,8 @@ const dark: Theme = {
   shadow: '#000000',
   sun: '#FF8A3D',
   sunLight: '#FFB067',
+  chart: '#E0631C',
+  chartMuted: '#3A4176',
   accents: {
     hoy: { hero: '#E58A00', glow: '#F7A21B', ink: '#1A1206', tile: '#3A2C1A', tileInk: '#FFB84D' },
     tareas: { hero: '#E0631C', glow: '#F27D36', ink: '#FFFFFF', tile: '#3A2418', tileInk: '#FF9A5C' },

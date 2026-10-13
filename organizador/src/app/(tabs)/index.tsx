@@ -4,21 +4,24 @@ import { View } from 'react-native';
 
 import { EventCard, HabitOption, TaskCard, TimelineItem } from '../../components/rows';
 import { useTheme } from '../../components/theme';
-import { Empty, Fab, Hero, IconButton, Screen, SectionTitle, Text } from '../../components/ui';
+import { Card, Empty, Fab, Hero, IconButton, Meta, Screen, SectionTitle, SessionCard, Text, Tile } from '../../components/ui';
+import { MoodPicker } from '../../components/mood';
 import {
-  eventsBetween,
+  getCheckin,
   listHabits,
   listTasks,
+  setMood,
   tasksDueOn,
   toggleHabit,
   toggleTask,
-  type CalendarEvent,
+  type Mood,
   type Task,
 } from '../../db/repo';
+import { listAgendaEvents, type AgendaEvent } from '../../lib/events';
 import { formatLong, today } from '../../lib/dates';
 import { useQuery } from '../../lib/useQuery';
 
-type Step = { kind: 'event'; event: CalendarEvent; done: boolean } | { kind: 'task'; task: Task; done: boolean };
+type Step = { kind: 'event'; event: AgendaEvent; done: boolean } | { kind: 'task'; task: Task; done: boolean };
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -35,17 +38,18 @@ export default function HoyScreen() {
   const date = today();
   const { data, reload, db } = useQuery(
     async (db) => {
-      const [pending, dueToday, events, habits] = await Promise.all([
+      const [pending, dueToday, events, habits, checkin] = await Promise.all([
         listTasks(db, 'hoy'), // pendientes de hoy + vencidas
         tasksDueOn(db, date), // incluye las ya hechas, para que no desaparezcan al tildarlas
-        eventsBetween(db, date, date),
+        listAgendaEvents(db, date, date).catch(() => [] as AgendaEvent[]),
         listHabits(db, date),
+        getCheckin(db, date),
       ]);
       const tasks = [...pending, ...dueToday.filter((x) => x.done)];
-      return { tasks, events, habits: habits.filter((h) => h.dueToday) };
+      return { tasks, events, habits: habits.filter((h) => h.dueToday), mood: (checkin?.mood ?? null) as Mood | null };
     },
     date,
-    { tasks: [], events: [], habits: [] },
+    { tasks: [], events: [], habits: [], mood: null as Mood | null },
   );
 
   // Línea de tiempo: eventos en orden horario y después las tareas. El primer paso sin hacer es el "actual".
@@ -54,7 +58,8 @@ export default function HoyScreen() {
     ...data.events.map((event) => ({
       kind: 'event' as const,
       event,
-      done: !!event.start_time && (event.end_time ?? event.start_time) < now,
+      // Termina hoy y ya pasó su hora de fin (los de varios días que siguen mañana no están "hechos").
+      done: event.end_date === date && !!event.start_time && (event.end_time ?? event.start_time) < now,
     })),
     ...data.tasks.map((task) => ({ kind: 'task' as const, task, done: !!task.done })),
   ];
@@ -100,17 +105,28 @@ export default function HoyScreen() {
           </View>
         )}
 
+        <Card style={{ padding: 14, gap: 6 }}>
+          <Text style={{ fontSize: 17, fontWeight: '800', textAlign: 'center' }}>¿Cómo te sentís hoy?</Text>
+          <MoodPicker
+            value={data.mood}
+            onChange={async (m) => {
+              await setMood(db, date, m);
+              reload();
+            }}
+          />
+        </Card>
+
         <SectionTitle>Tu día</SectionTitle>
         {steps.length ? (
           <View>
             {steps.map((step, i) => (
               <TimelineItem
-                key={step.kind === 'event' ? `e-${step.event.id}` : `t-${step.task.id}`}
+                key={step.kind === 'event' ? `e-${step.event.id}-${step.event.start_time}` : `t-${step.task.id}`}
                 state={step.done ? 'done' : i === currentIndex ? 'current' : 'upcoming'}
                 last={i === steps.length - 1}
               >
                 {step.kind === 'event' ? (
-                  <EventCard event={step.event} />
+                  <EventCard event={step.event} day={date} />
                 ) : (
                   <TaskCard
                     task={step.task}
@@ -144,6 +160,18 @@ export default function HoyScreen() {
         ) : (
           <Empty icon="leaf-outline" text="No hay hábitos programados hoy." />
         )}
+
+        <SectionTitle>Tu progreso</SectionTitle>
+        <SessionCard
+          title="Estadísticas"
+          onPress={() => router.push('/estadisticas')}
+          meta={<Meta icon="analytics-outline">Gastos, hábitos y ánimo cruzados</Meta>}
+          tile={
+            <Tile color={t.accents.hoy.tile}>
+              <Ionicons name="bar-chart" size={30} color={t.accents.hoy.tileInk} />
+            </Tile>
+          }
+        />
       </Screen>
       <Fab label="Tarea" onPress={() => router.push(`/tarea/nueva?due=${date}`)} />
     </>

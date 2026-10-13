@@ -296,3 +296,93 @@ export async function archiveHabit(db: SQLiteDatabase, id: string): Promise<void
 export async function deleteHabit(db: SQLiteDatabase, id: string): Promise<void> {
   await db.runAsync('DELETE FROM habits WHERE id = ?', id);
 }
+
+// ---------- Ajustes (clave/valor, por dispositivo) ----------
+
+export async function getSetting<T>(db: SQLiteDatabase, key: string, fallback: T): Promise<T> {
+  const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM settings WHERE key = ?', key);
+  if (!row) return fallback;
+  try {
+    return JSON.parse(row.value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function setSetting(db: SQLiteDatabase, key: string, value: unknown): Promise<void> {
+  await db.runAsync(
+    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+    key, JSON.stringify(value),
+  );
+}
+
+// ---------- Ánimo diario ----------
+
+export type Mood = 1 | 2 | 3 | 4 | 5;
+export type Checkin = { date: string; mood: Mood; note: string; updated_at: string };
+
+export function getCheckin(db: SQLiteDatabase, date: string) {
+  return db.getFirstAsync<Checkin>('SELECT * FROM checkins WHERE date = ?', date);
+}
+
+export function checkinsBetween(db: SQLiteDatabase, from: string, to: string) {
+  return db.getAllAsync<Checkin>('SELECT * FROM checkins WHERE date BETWEEN ? AND ? ORDER BY date', from, to);
+}
+
+export async function setMood(db: SQLiteDatabase, date: string, mood: Mood | null): Promise<void> {
+  if (mood === null) {
+    await db.runAsync('DELETE FROM checkins WHERE date = ?', date);
+    return;
+  }
+  await db.runAsync(
+    `INSERT INTO checkins (date, mood, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(date) DO UPDATE SET mood = excluded.mood, updated_at = excluded.updated_at`,
+    date, mood, nowISO(),
+  );
+}
+
+// ---------- Gastos (importados) ----------
+
+export type Expense = {
+  id: number;
+  date: string;
+  occurred_at: string;
+  amount: number;
+  is_income: number;
+  currency: string;
+  title: string;
+  category: string;
+  account: string;
+  source: string;
+  imported_at: string;
+};
+
+export function expensesOn(db: SQLiteDatabase, date: string) {
+  return db.getAllAsync<Expense>(
+    'SELECT * FROM expenses WHERE date = ? ORDER BY is_income, amount DESC',
+    date,
+  );
+}
+
+export function expensesBetween(db: SQLiteDatabase, from: string, to: string) {
+  return db.getAllAsync<Expense>('SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date', from, to);
+}
+
+/** Rango de días cubierto por las importaciones: fuera de él no sabemos si hubo gastos. */
+export type ExpenseCoverage = { from: string; to: string; count: number; importedAt: string } | null;
+
+export async function expenseCoverage(db: SQLiteDatabase): Promise<ExpenseCoverage> {
+  const row = await db.getFirstAsync<{ from: string | null; to: string | null; count: number; importedAt: string | null }>(
+    'SELECT MIN(date) AS "from", MAX(date) AS "to", COUNT(*) AS count, MAX(imported_at) AS importedAt FROM expenses',
+  );
+  if (!row || !row.from || !row.to) return null;
+  return { from: row.from, to: row.to, count: row.count, importedAt: row.importedAt ?? '' };
+}
+
+export function habitLogsAllBetween(db: SQLiteDatabase, from: string, to: string) {
+  return db.getAllAsync<HabitLog>('SELECT habit_id, date FROM habit_logs WHERE date BETWEEN ? AND ?', from, to);
+}
+
+export function activeHabits(db: SQLiteDatabase) {
+  return db.getAllAsync<Habit>('SELECT * FROM habits WHERE archived = 0 ORDER BY created_at');
+}

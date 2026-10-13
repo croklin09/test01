@@ -3,8 +3,9 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import type { CalendarEvent, HabitWithStatus, Task } from '../db/repo';
-import { formatRelative, today } from '../lib/dates';
+import type { HabitWithStatus, Task } from '../db/repo';
+import type { AgendaEvent } from '../lib/calendarMapping';
+import { formatRelative, fromISODate, today } from '../lib/dates';
 import { PRIORITY_LABEL, priorityColor, useTheme } from './theme';
 import { Check, Meta, OptionRow, Pill, SessionCard, Text, Tile } from './ui';
 
@@ -40,7 +41,7 @@ export function TaskCard({ task, onToggle }: { task: Task; onToggle: () => void 
   );
 }
 
-export function EventCard({ event }: { event: CalendarEvent }) {
+export function EventCard({ event, day }: { event: AgendaEvent; day?: string }) {
   const t = useTheme();
   const a = t.accents.agenda;
   return (
@@ -49,19 +50,21 @@ export function EventCard({ event }: { event: CalendarEvent }) {
       onPress={() => router.push(`/evento/${event.id}`)}
       meta={
         <View style={{ gap: 4 }}>
-          <Meta icon="time-outline">
-            {event.start_time
-              ? event.end_time
-                ? `${event.start_time} – ${event.end_time}`
-                : event.start_time
-              : 'Todo el día'}
-          </Meta>
+          <Meta icon="time-outline">{eventTimeLabel(event, day)}</Meta>
           {event.location ? <Meta icon="location-outline">{event.location}</Meta> : null}
+          {event.calendarTitle ? (
+            <View style={styles.calRow}>
+              <View style={[styles.calDot, { backgroundColor: event.color ?? t.muted }]} />
+              <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12, fontWeight: '600' }}>
+                {event.calendarTitle}
+              </Text>
+            </View>
+          ) : null}
         </View>
       }
       tile={
         <Tile color={a.tile}>
-          {event.start_time ? (
+          {event.start_time && (!day || day === event.date) ? (
             <Text style={{ color: a.tileInk, fontWeight: '800', fontSize: 18 }}>{event.start_time}</Text>
           ) : (
             <Ionicons name="sunny" size={30} color={a.tileInk} />
@@ -139,9 +142,28 @@ export function TimelineItem({
   );
 }
 
+/** "09:00 – 10:00", "Todo el día", o "Día 2 de 3" en eventos de varios días. */
+function eventTimeLabel(e: AgendaEvent, day?: string): string {
+  if (e.date !== e.end_date) {
+    if (day && day !== e.date) {
+      const total = daysBetween(e.date, e.end_date) + 1;
+      return `Día ${daysBetween(e.date, day) + 1} de ${total}`;
+    }
+    if (!e.start_time) return `Todo el día · hasta el ${formatRelative(e.end_date).toLowerCase()}`;
+  }
+  if (!e.start_time) return 'Todo el día';
+  return e.end_time ? `${e.start_time} – ${e.end_time}` : e.start_time;
+}
+
+function daysBetween(a: string, b: string): number {
+  return Math.round((fromISODate(b).getTime() - fromISODate(a).getTime()) / 86_400_000);
+}
+
 const RAIL_DOTS = Array.from({ length: 40 }, (_, i) => i);
 
 const styles = StyleSheet.create({
+  calRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  calDot: { width: 8, height: 8, borderRadius: 4 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4 },
   streak: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   node: { width: 22, height: 22, borderRadius: 11, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
