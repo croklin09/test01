@@ -2,7 +2,7 @@
   "expo": {
     "name": "Organizador",
     "slug": "organizador",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.croklin.organizador",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,6 +33,28 @@
         {
           "calendarPermission": "Organizador usa tu calendario para mostrar y guardar tus eventos.",
           "remindersPermission": false
+        }
+      ],
+      [
+        "expo-sharing",
+        {
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "text/csv",
+              "text/comma-separated-values",
+              "application/csv",
+              "text/plain",
+              "application/octet-stream"
+            ]
+          }
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ]
     ],

@@ -5,7 +5,7 @@ import { Alert, View } from 'react-native';
 
 import { useTheme } from '../components/theme';
 import { Sun } from '../components/illustrations';
-import { CalendarSection, CashewSection } from '../components/settingsSections';
+import { CalendarSection, CashewSection, FueguitoSection } from '../components/settingsSections';
 import { Button, Card, Screen, SectionTitle, Text } from '../components/ui';
 import { exportBackup, pickBackupFile, restoreBackup } from '../db/backup';
 import { SCHEMA_VERSION } from '../db/schema';
@@ -60,6 +60,7 @@ export default function AjustesScreen() {
       </View>
       <CalendarSection />
       <CashewSection />
+      <FueguitoSection />
       <SectionTitle>Backup</SectionTitle>
       <Text style={{ color: t.muted, fontSize: 15, lineHeight: 21 }}>
         Tareas, notas, hábitos, ánimo y gastos importados viven solo en este dispositivo (los eventos del calendario

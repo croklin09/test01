@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { EventCard, HabitOption, TaskCard, TimelineItem } from '../../components/rows';
 import { useTheme } from '../../components/theme';
 import { Card, Empty, Fab, Hero, IconButton, Meta, Screen, SectionTitle, SessionCard, Text, Tile } from '../../components/ui';
+import { isNight, SunMoonFueguito } from '../../components/fueguito';
 import { MoodPicker } from '../../components/mood';
 import {
   getCheckin,
@@ -36,6 +37,8 @@ function nowHHMM(): string {
 export default function HoyScreen() {
   const t = useTheme();
   const date = today();
+  // De noche el encabezado muestra la luna sobre azul noche (se evalúa en cada render: al volver a la app se actualiza).
+  const night = isNight();
   const { data, reload, db } = useQuery(
     async (db) => {
       const [pending, dueToday, events, habits, checkin] = await Promise.all([
@@ -81,6 +84,8 @@ export default function HoyScreen() {
         hero={
           <Hero
             module="hoy"
+            palette={night ? 'habitos' : 'hoy'}
+            art={<SunMoonFueguito night={night} />}
             eyebrow={formatLong(date)}
             title={greeting()}
             subtitle={subtitle}
@@ -88,7 +93,7 @@ export default function HoyScreen() {
               <IconButton
                 icon="settings-outline"
                 label="Ajustes"
-                color={t.accents.hoy.ink}
+                color={t.accents[night ? 'habitos' : 'hoy'].ink}
                 bg="rgba(255,255,255,0.35)"
                 onPress={() => router.push('/ajustes')}
               />

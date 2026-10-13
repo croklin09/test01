@@ -6,8 +6,9 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
+import { IncomingShare } from '../components/IncomingShare';
 import { FONTS, useTheme } from '../components/theme';
 import { DB_NAME, migrate } from '../db/schema';
 
@@ -27,6 +28,8 @@ export default function RootLayout() {
   return (
     <SQLiteProvider databaseName={DB_NAME} onInit={migrate} useSuspense={false}>
       <StatusBar style={t.scheme === 'dark' ? 'light' : 'dark'} />
+      {/* Recibir archivos compartidos (CSV de Cashew): solo Android lo soporta. */}
+      {Platform.OS === 'android' && <IncomingShare />}
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: t.bg },

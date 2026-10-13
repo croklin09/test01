@@ -55,15 +55,21 @@ export function Hero({
   subtitle,
   eyebrow,
   right,
+  art,
+  palette,
 }: {
   module: Module;
   title: string;
   subtitle?: string;
   eyebrow?: string;
   right?: ReactNode;
+  /** Reemplaza la ilustración del módulo (p. ej. el sol/luna interactivo de Hoy). */
+  art?: ReactNode;
+  /** Colores de otro módulo (p. ej. Hoy de noche usa el azul de Hábitos). */
+  palette?: Module;
 }) {
   const t = useTheme();
-  const a = t.accents[module];
+  const a = t.accents[palette ?? module];
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const lightInk = a.ink === '#FFFFFF';
@@ -80,7 +86,7 @@ export function Hero({
         {right}
       </View>
       <View style={{ alignItems: 'center', paddingBottom: 4 }}>
-        <ModuleArt module={module} size={112} />
+        {art ?? <ModuleArt module={module} size={112} />}
       </View>
       <View style={s.heroText}>
         {eyebrow ? (

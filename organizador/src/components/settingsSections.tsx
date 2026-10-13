@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { clearCashew, getImportRanges, importCashew, parseCashewCsv, pickCashewCsv, type ImportRange } from '../db/cashew';
 import { expenseCoverage } from '../db/repo';
 import { formatRelative } from '../lib/dates';
+import { clearFueguitoAudio, getFueguitoAudio, pickFueguitoAudio } from '../lib/fueguitoAudio';
 import { useQuery } from '../lib/useQuery';
 import {
   countLocalEvents,
@@ -18,6 +19,7 @@ import {
   type CalendarSettings,
   type DeviceCalendar,
 } from '../lib/events';
+import { Fueguito } from './fueguito';
 import { useTheme } from './theme';
 import { Button, Card, CheckDot, SectionTitle, Text } from './ui';
 
@@ -233,8 +235,8 @@ export function CashewSection() {
     <>
       <SectionTitle>Cashew</SectionTitle>
       <Text style={{ color: t.muted, fontSize: 15, lineHeight: 21 }}>
-        En Cashew, exportá tus movimientos a CSV y elegí ese archivo acá. Podés reimportar cuando quieras: los días
-        del archivo se reemplazan, no se duplican.
+        En Cashew: Ajustes → Importación y exportación → «Exportar a archivo CSV» (queda en Descargas). Después, en la
+        app Archivos, compartí ese CSV con Organizador, o tocá el botón de abajo. Reimportar no duplica.
       </Text>
       {coverage ? (
         <Card alt style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}>
@@ -269,3 +271,47 @@ const styles = StyleSheet.create({
   },
   calDot: { width: 12, height: 12, borderRadius: 6 },
 });
+
+// ---------- Fueguito ----------
+
+export function FueguitoSection() {
+  const t = useTheme();
+  const { data: audio, reload, db } = useQuery((db) => getFueguitoAudio(db), 'fueguito', null);
+
+  const pick = () =>
+    pickFueguitoAudio(db)
+      .then(reload)
+      .catch((e) => errorAlert('No se pudo usar ese audio', e));
+
+  return (
+    <>
+      <SectionTitle>Fueguito</SectionTitle>
+      <Card style={{ padding: 16, gap: 12, flexDirection: 'row', alignItems: 'center' }}>
+        <Fueguito size={64} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ fontWeight: '800', fontSize: 16 }}>Tocá el sol (o la luna) en Hoy</Text>
+          <Text style={{ color: t.muted, fontSize: 13 }}>
+            Se transforma en el fueguito mientras suena tu canción. El audio queda guardado solo en este teléfono.
+          </Text>
+        </View>
+      </Card>
+      {audio ? (
+        <Card alt style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 }}>
+          <Ionicons name="musical-notes" size={20} color={t.accents.hoy.tileInk} />
+          <Text numberOfLines={1} style={{ flex: 1, fontWeight: '700' }}>
+            {audio.name}
+          </Text>
+        </Card>
+      ) : null}
+      <Button
+        title={audio ? 'Cambiar canción' : 'Elegir canción'}
+        icon="musical-note-outline"
+        variant={audio ? 'ghost' : 'primary'}
+        onPress={pick}
+      />
+      {audio ? (
+        <Button title="Quitar canción" variant="danger" onPress={() => clearFueguitoAudio(db).then(reload)} />
+      ) : null}
+    </>
+  );
+}

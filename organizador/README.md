@@ -45,6 +45,18 @@ Estética cálida y amable, inspirada en apps de bienestar:
   hábito × ánimo y ánimo × gasto. Excluye el día de hoy, compara solo una moneda y exige al menos 4 días por grupo y una
   diferencia relevante antes de mostrar un hallazgo.
 
+## Novedades (v1.2)
+
+- **Fueguito** (`components/fueguito.tsx`): en *Hoy*, el sol (de día) o la luna (de noche, 20 a 7 h) se transforma
+  al tocarlo en un fueguito animado (llama en capas que titila, parpadeo y chispas; `Animated` con driver nativo)
+  mientras suena una canción elegida por la persona desde su teléfono (`expo-audio`). El audio se copia a la
+  carpeta privada de la app; no se empaqueta ni se sube al repo.
+- **Cashew por "Compartir"** (`components/IncomingShare.tsx`, `expo-sharing`): Organizador aparece en el menú
+  Compartir de Android para CSV. Cashew guarda el export en Descargas (no abre Compartir), así que el flujo es:
+  Cashew → Ajustes → Importación y exportación → Exportar a archivo CSV → app Archivos → Compartir → Organizador.
+  No se puede leer Cashew en forma 100 % automática: no tiene API y sus backups de Drive van a `appDataFolder`,
+  que solo su propia app puede leer.
+
 ## Estructura
 
 ```
